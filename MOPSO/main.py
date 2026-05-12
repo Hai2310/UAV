@@ -1,5 +1,5 @@
-import pandas as pd
 import numpy as np
+import pandas as pd
 
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -14,11 +14,9 @@ from data_processing import *
 
 from optimization import *
 
-# PLOTLY FIX
+# PLOTLY
 pio.renderers.default = "browser"
 # PARAMETERS
-UAV_SPEED = 15
-
 UAV_ALTITUDE = 100
 
 BANDWIDTH = 1e6
@@ -36,7 +34,7 @@ file_path = "sf_dataset.csv"
 df = load_dataset(file_path)
 
 df = generate_features(df)
-# CALCULATE LATENCY
+# LATENCY
 df["latency"] = df.apply(
 
     lambda row: calculate_latency(
@@ -58,7 +56,7 @@ df["latency"] = df.apply(
 
     axis=1
 )
-# CALCULATE ENERGY
+# ENERGY
 df["energy"] = df.apply(
 
     lambda row: calculate_energy(
@@ -68,7 +66,7 @@ df["energy"] = df.apply(
 
     axis=1
 )
-# DATA CLEANING
+# CLEANING
 df = df.drop_duplicates()
 
 df = df.reset_index(drop=True)
@@ -84,9 +82,13 @@ sns.histplot(
     bins=50
 )
 
-plt.title("Latency Distribution")
+plt.title(
+    "Latency Distribution"
+)
 
 plt.show()
+
+# ------------------------------------------------------------
 
 plt.figure(figsize=(10, 5))
 
@@ -95,7 +97,9 @@ sns.histplot(
     bins=50
 )
 
-plt.title("Energy Distribution")
+plt.title(
+    "Energy Distribution"
+)
 
 plt.show()
 # HEATMAP
@@ -131,22 +135,19 @@ scaled_features = scaler.fit_transform(
         "offload_ratio"
     ]]
 )
-# RUN MOEA/D
-result = run_moead(df)
+# RUN MOPSO
+indices, pareto_front = run_mopso(df)
 
-pareto_front = result.F
-# RESULTS
-print("\n===== MOEA/D OPTIMIZATION =====")
-
-print(
-    f"Number of Pareto Solutions: {len(result.F)}"
-)
+print("\nOptimization Completed")
 # 2D PARETO
 plt.figure(figsize=(10, 7))
 
 plt.scatter(
+
     pareto_front[:, 0],
+
     pareto_front[:, 1],
+
     alpha=0.7
 )
 
@@ -155,7 +156,7 @@ plt.xlabel("Latency")
 plt.ylabel("Energy")
 
 plt.title(
-    "MOEA/D Pareto Front"
+    "MOPSO Pareto Front"
 )
 
 plt.grid(True)
@@ -186,7 +187,7 @@ fig = go.Figure(
 
 fig.update_layout(
 
-    title="MOEA/D 3D Pareto Front",
+    title="MOPSO 3D Pareto Front",
 
     scene=dict(
 
@@ -204,7 +205,7 @@ fig.update_layout(
 
 fig.show(renderer="browser")
 # BEST SOLUTION
-best_solution_idx = np.argmin(
+best_idx = np.argmin(
 
     pareto_front[:, 0]
     +
@@ -212,7 +213,7 @@ best_solution_idx = np.argmin(
 )
 
 best_solution = pareto_front[
-    best_solution_idx
+    best_idx
 ]
 
 print("\n===== BEST SOLUTION =====")
@@ -229,10 +230,8 @@ print(
     f"Offloading Ratio: {-best_solution[2]:.6f}"
 )
 # OPTIMAL ROUTES
-optimal_indices = result.X.flatten().astype(int)
-
 optimal_routes = df.iloc[
-    optimal_indices
+    indices
 ].copy()
 
 optimal_routes = optimal_routes[[
@@ -288,7 +287,7 @@ fig.show(renderer="browser")
 # SAVE
 optimal_routes.to_csv(
 
-    "optimal_routes.csv",
+    "optimal_routes_mopso.csv",
 
     index=False
 )
